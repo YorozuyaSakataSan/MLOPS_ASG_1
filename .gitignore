@@ -7,4 +7,6 @@ data/raw/*
 mlruns/
 models/
 *.log
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
 .DS_Store
