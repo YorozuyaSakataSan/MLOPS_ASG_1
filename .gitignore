@@ -9,4 +9,8 @@ models/
 *.log
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
+mlruns/
+mlflow.db
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
 .DS_Store

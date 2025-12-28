@@ -5,6 +5,8 @@ from pathlib import Path
 import json
 
 import pandas as pd
+import mlflow
+import mlflow.sklearn
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
 from sklearn.pipeline import Pipeline
@@ -80,6 +82,8 @@ def main() -> None:
     df = pd.read_csv("data/raw/heart.csv")
     cfg = FeatureConfig()
 
+    mlflow.set_experiment("HeartDiseaseRisk")
+
     X, y = split_X_y(df, cfg)
 
     # Train-test split
@@ -108,23 +112,57 @@ def main() -> None:
     results = {}
     results["config"] = asdict(cfg)
 
-    # ---- Logistic Regression ----
     print("\n=== Logistic Regression ===")
-    lr_cv = evaluate_model_cv(logreg, X_train, y_train)
-    logreg.fit(X_train, y_train)
-    lr_test = evaluate_on_test(logreg, X_test, y_test)
-    results["logistic_regression"] = {**lr_cv, **lr_test}
-    print("CV:", lr_cv)
-    print("TEST:", {k: lr_test[k] for k in ["test_accuracy", "test_precision", "test_recall", "test_roc_auc"]})
+    with mlflow.start_run(run_name="LogisticRegression"):
+        mlflow.log_param("model", "logistic_regression")
+        mlflow.log_param("max_iter", 2000)
 
-    # ---- Random Forest ----
+        mlflow.log_param("numeric_cols", ",".join(cfg.numeric_cols))
+        mlflow.log_param("categorical_cols", ",".join(cfg.categorical_cols))
+
+        lr_cv = evaluate_model_cv(logreg, X_train, y_train)
+        logreg.fit(X_train, y_train)
+        lr_test = evaluate_on_test(logreg, X_test, y_test)
+
+        # log CV metrics
+        for k, v in lr_cv.items():
+            mlflow.log_metric(k, v)
+
+        # log test metrics
+        mlflow.log_metric("test_accuracy", lr_test["test_accuracy"])
+        mlflow.log_metric("test_precision", lr_test["test_precision"])
+        mlflow.log_metric("test_recall", lr_test["test_recall"])
+        mlflow.log_metric("test_roc_auc", lr_test["test_roc_auc"])
+
+        results["logistic_regression"] = {**lr_cv, **lr_test}
+
+        # log model (entire pipeline)
+        mlflow.sklearn.log_model(logreg, name="model")
+
     print("\n=== Random Forest ===")
-    rf_cv = evaluate_model_cv(rf, X_train, y_train)
-    rf.fit(X_train, y_train)
-    rf_test = evaluate_on_test(rf, X_test, y_test)
-    results["random_forest"] = {**rf_cv, **rf_test}
-    print("CV:", rf_cv)
-    print("TEST:", {k: rf_test[k] for k in ["test_accuracy", "test_precision", "test_recall", "test_roc_auc"]})
+    with mlflow.start_run(run_name="RandomForest"):
+        mlflow.log_param("model", "random_forest")
+        mlflow.log_param("n_estimators", 300)
+        mlflow.log_param("random_state", 42)
+
+        mlflow.log_param("numeric_cols", ",".join(cfg.numeric_cols))
+        mlflow.log_param("categorical_cols", ",".join(cfg.categorical_cols))
+
+        rf_cv = evaluate_model_cv(rf, X_train, y_train)
+        rf.fit(X_train, y_train)
+        rf_test = evaluate_on_test(rf, X_test, y_test)
+
+        for k, v in rf_cv.items():
+            mlflow.log_metric(k, v)
+
+        mlflow.log_metric("test_accuracy", rf_test["test_accuracy"])
+        mlflow.log_metric("test_precision", rf_test["test_precision"])
+        mlflow.log_metric("test_recall", rf_test["test_recall"])
+        mlflow.log_metric("test_roc_auc", rf_test["test_roc_auc"])
+
+        results["random_forest"] = {**rf_cv, **rf_test}
+
+        mlflow.sklearn.log_model(logreg, name="model")
 
     # Pick best model by test ROC-AUC
     best_name = max(
@@ -144,6 +182,12 @@ def main() -> None:
     best_model = logreg if best_name == "logistic_regression" else rf
     save_plots(best_model, X_test, y_test)
     print("Saved ROC plot to:", (ARTIFACT_DIR / "roc_curve.png").resolve())
+
+    with mlflow.start_run(run_name="Artifacts"):
+        mlflow.log_param("best_model", best_name)
+        mlflow.log_artifact(str(metrics_path))
+        mlflow.log_artifact(str(ARTIFACT_DIR / "roc_curve.png"))
+
 
 
 if __name__ == "__main__":
