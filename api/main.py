@@ -8,6 +8,11 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+import time
+from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
 
 # ---------------- Logging ----------------
 logging.basicConfig(
@@ -35,11 +40,7 @@ def load_model():
 # ---------------- FastAPI ----------------
 app = FastAPI(title="Heart Disease Risk API", version="1.0.0")
 
-import time
-import logging
-from prometheus_fastapi_instrumentator import Instrumentator
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
+
 
 logger = logging.getLogger("heart-api")
 logger.setLevel(logging.INFO)
