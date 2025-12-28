@@ -1,4 +1,3 @@
-```md
 # Heart Disease Risk Prediction (End-to-End MLOps)
 
 This repository is an end-to-end MLOps project built on the **Heart Disease UCI dataset**.  
