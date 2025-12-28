@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+import joblib
 
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
 from sklearn.pipeline import Pipeline
@@ -187,6 +188,32 @@ def main() -> None:
         mlflow.log_param("best_model", best_name)
         mlflow.log_artifact(str(metrics_path))
         mlflow.log_artifact(str(ARTIFACT_DIR / "roc_curve.png"))
+
+    # Retrain best model on full dataset (recommended for final packaging)
+    best_model.fit(X, y)
+
+    # Save to models/ for reuse in API
+    models_dir = Path("models")
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    model_path = models_dir / "best_model.joblib"
+    joblib.dump(best_model, model_path)
+
+    # Save small metadata too
+    meta_path = models_dir / "model_meta.json"
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "best_model": best_name,
+                "dataset_rows": int(df.shape[0]),
+                "dataset_cols": int(df.shape[1]),
+            },
+            f,
+            indent=2,
+        )
+
+    print("✅ Saved packaged model to:", model_path.resolve())
+    print("✅ Saved model metadata to:", meta_path.resolve())
 
 
 
