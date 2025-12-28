@@ -35,6 +35,39 @@ def load_model():
 # ---------------- FastAPI ----------------
 app = FastAPI(title="Heart Disease Risk API", version="1.0.0")
 
+import time
+import logging
+from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+logger = logging.getLogger("heart-api")
+logger.setLevel(logging.INFO)
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.time()
+        response = await call_next(request)
+        duration_ms = (time.time() - start) * 1000
+
+        logger.info(
+            "request",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round(duration_ms, 2),
+                "client": request.client.host if request.client else None,
+            },
+        )
+        return response
+
+app.add_middleware(RequestLoggingMiddleware)
+
+# Prometheus metrics at /metrics
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+
 
 @app.on_event("startup")
 def startup_event():

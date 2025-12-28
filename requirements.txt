@@ -17,4 +17,8 @@ ruff
 
 joblib
 
+prometheus-fastapi-instrumentator
+prometheus-client
+
+
 
