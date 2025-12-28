@@ -9,11 +9,12 @@ mlflow
 ucimlrepo
 
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 
 pytest
 ruff
 
 joblib
+
 
