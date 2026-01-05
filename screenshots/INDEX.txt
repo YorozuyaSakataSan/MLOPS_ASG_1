@@ -1,0 +1,10 @@
+Screenshot Index (MLOps Assignment)
+
+eda         - EDA plots (distributions, correlation/heatmap, class balance)
+mlflow      - MLflow runs list + a run page showing params/metrics/artifacts
+tests       - pytest passing output
+cicd        - GitHub Actions workflow runs (lint/test/build/train etc.)
+docker      - docker build/run + API /predict proof
+k8s         - k8s deployment/service proof + pods running
+monitoring  - metrics endpoint OR prometheus/grafana proof
+api_proof   - curl/Postman request + response JSON (and confidence if available)
